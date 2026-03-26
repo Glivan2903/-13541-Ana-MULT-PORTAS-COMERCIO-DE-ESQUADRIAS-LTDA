@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Upload, FileSpreadsheet, Send, X, CheckCircle, AlertCircle, FileText } from "lucide-react"
+import { Upload, FileSpreadsheet, Send, X, CheckCircle, AlertCircle, FileText, Download } from "lucide-react"
 import * as XLSX from "xlsx"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -181,6 +181,15 @@ export default function CSVUploadPage() {
     setSelectedTemplate(null)
   }
 
+  const downloadTemplate = () => {
+    const headers = [["VENDEDOR", "CLIENTE", "TELEFONE"]]
+    const data = [["João Silva", "Maria Oliveira", "11999999999"]]
+    const worksheet = XLSX.utils.aoa_to_sheet([...headers, ...data])
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Modelo")
+    XLSX.writeFile(workbook, "modelo_planilha.xlsx")
+  }
+
   const fetchTemplates = async () => {
     setIsLoadingTemplates(true)
     try {
@@ -273,9 +282,20 @@ export default function CSVUploadPage() {
         {/* Upload Area */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Selecionar Arquivo
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Selecionar Arquivo
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={downloadTemplate}
+                className="text-xs gap-2"
+              >
+                <Download className="h-3 w-3" />
+                Baixar Modelo
+              </Button>
             </CardTitle>
             <CardDescription className="flex flex-col gap-1">
               <span>Arraste e solte seu arquivo CSV ou Excel ou clique para selecionar</span>
