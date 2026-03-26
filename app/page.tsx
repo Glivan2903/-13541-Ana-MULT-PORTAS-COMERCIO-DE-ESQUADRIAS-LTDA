@@ -55,10 +55,11 @@ export default function CSVUploadPage() {
   const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
   
-  // Template Modal State
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [modalStep, setModalStep] = useState<1 | 2>(1)
   const [templates, setTemplates] = useState<Template[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [delay, setDelay] = useState<string>("10")
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
 
   const detectDelimiter = (text: string): string => {
@@ -212,6 +213,7 @@ export default function CSVUploadPage() {
 
   const openTemplateModal = () => {
     if (!csvData) return
+    setModalStep(1)
     setIsTemplateModalOpen(true)
     fetchTemplates()
   }
@@ -227,6 +229,7 @@ export default function CSVUploadPage() {
       const payload = {
         templateName: selectedTemplate.name,
         templateHsmId: selectedTemplate.hsmId,
+        delay: delay,
         headers: csvData.headers,
         data: csvData.rows.map((row) => {
           const obj: Record<string, string> = {}
@@ -434,89 +437,142 @@ export default function CSVUploadPage() {
       <Dialog open={isTemplateModalOpen} onOpenChange={setIsTemplateModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Selecionar Template</DialogTitle>
+            <DialogTitle>
+              {modalStep === 1 ? "Selecionar Template" : "Configurar Disparo"}
+            </DialogTitle>
             <DialogDescription>
-              Selecione o template que será disparado para os contatos desta planilha.
+              {modalStep === 1 
+                ? "Selecione o template que será disparado para os contatos desta planilha." 
+                : "Defina o atraso entre uma mensagem e outra para evitar bloqueios."}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="template-select">Template</Label>
-              <Select
-                onValueChange={(value) => {
-                  const template = templates.find((t) => t.name === value)
-                  setSelectedTemplate(template || null)
-                }}
-                value={selectedTemplate?.name}
-              >
-                <SelectTrigger id="template-select">
-                  <SelectValue placeholder="Selecione um template..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoadingTemplates ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="ml-2 text-sm">Carregando...</span>
-                    </div>
-                  ) : templates.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      Nenhum template encontrado.
-                    </div>
-                  ) : (
-                    templates.map((template) => (
-                      <SelectItem key={template.id} value={template.name}>
-                        {template.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            {modalStep === 1 ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="template-select">Template</Label>
+                  <Select
+                    onValueChange={(value) => {
+                      const template = templates.find((t) => t.name === value)
+                      setSelectedTemplate(template || null)
+                    }}
+                    value={selectedTemplate?.name}
+                  >
+                    <SelectTrigger id="template-select">
+                      <SelectValue placeholder="Selecione um template..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingTemplates ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="ml-2 text-sm">Carregando...</span>
+                        </div>
+                      ) : templates.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          Nenhum template encontrado.
+                        </div>
+                      ) : (
+                        templates.map((template) => (
+                          <SelectItem key={template.id} value={template.name}>
+                            {template.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {selectedTemplate && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <Label>Prévia do Conteúdo</Label>
-                <div className="rounded-lg border bg-muted/50 p-4 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                    {selectedTemplate.preview}
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {selectedTemplate.category}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {selectedTemplate.language}
-                    </span>
+                {selectedTemplate && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Label>Prévia do Conteúdo</Label>
+                    <div className="rounded-lg border bg-muted/50 p-4 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
+                      <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                        {selectedTemplate.preview}
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {selectedTemplate.category}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {selectedTemplate.language}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-2">
+                  <Label htmlFor="delay-select">Delay entre Disparos (Segundos)</Label>
+                  <Select
+                    onValueChange={setDelay}
+                    value={delay}
+                  >
+                    <SelectTrigger id="delay-select">
+                      <SelectValue placeholder="Selecione o delay..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 segundos</SelectItem>
+                      <SelectItem value="30">30 segundos</SelectItem>
+                      <SelectItem value="60">60 segundos</SelectItem>
+                      <SelectItem value="90">90 segundos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    O delay ajuda a manter a cadência de envio recomendada para sua conta.
+                  </p>
                 </div>
               </div>
             )}
           </div>
 
-          <DialogFooter className="sm:justify-between">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsTemplateModalOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={sendToWebhook}
-              disabled={!selectedTemplate || isSending}
-            >
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                "Confirmar e Enviar"
-              )}
-            </Button>
+          <DialogFooter className="sm:justify-between flex gap-2">
+            {modalStep === 1 ? (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsTemplateModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setModalStep(2)}
+                  disabled={!selectedTemplate}
+                >
+                  Avançar
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setModalStep(1)}
+                  disabled={isSending}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={sendToWebhook}
+                  disabled={isSending}
+                >
+                  {isSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Confirmar e Enviar"
+                  )}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
